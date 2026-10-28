@@ -198,6 +198,14 @@ function createTray() {
       },
       { type: 'separator' },
       {
+        label: 'Restart NetMeter',
+        click: () => {
+          isQuitting = true;
+          app.relaunch();
+          app.exit(0);
+        }
+      },
+      {
         label: 'Exit',
         click: () => {
           isQuitting = true;
