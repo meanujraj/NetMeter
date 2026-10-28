@@ -52,11 +52,37 @@ function bringToTop(forceFocus = false) {
   }
 }
 
+function clampToBounds(bounds, isDocked) {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const screenBounds = primaryDisplay.bounds;
+  const workArea = primaryDisplay.workArea;
+
+  const w = bounds.width;
+  const h = bounds.height;
+
+  // Horizontal clamping: keep entire widget inside screen margins
+  const minX = screenBounds.x + 10;
+  const maxX = screenBounds.x + screenBounds.width - w - 10;
+  const clampedX = Math.max(minX, Math.min(maxX, bounds.x));
+
+  if (isDocked) {
+    const taskbarHeight = Math.max(40, screenBounds.height - workArea.height);
+    const taskbarY = screenBounds.height - taskbarHeight;
+    const clampedY = taskbarY + Math.max(0, Math.round((taskbarHeight - h) / 2));
+    return { x: clampedX, y: clampedY, width: w, height: h };
+  } else {
+    const minY = screenBounds.y + 10;
+    const maxY = screenBounds.y + screenBounds.height - h - 10;
+    const clampedY = Math.max(minY, Math.min(maxY, bounds.y));
+    return { x: clampedX, y: clampedY, width: w, height: h };
+  }
+}
+
 function createWindow() {
   const settings = settingsService.getAll();
   const savedBounds = settings.windowBounds;
   const isDocked = settings.widgetMode === 'docked';
-  const width = isDocked ? 240 : 250;
+  const width = isDocked ? 320 : 250;
   const height = isDocked ? 30 : 145;
 
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -70,22 +96,17 @@ function createWindow() {
   let windowX = isDocked ? defaultTaskbarX : undefined;
   let windowY = isDocked ? defaultTaskbarY : undefined;
 
-  // Restore saved position if valid
+  // Restore saved position if valid and clamp strictly on-screen
   if (savedBounds && typeof savedBounds.x === 'number' && typeof savedBounds.y === 'number') {
-    if (isDocked) {
-      // In docked mode, keep Y locked inside the taskbar, allow horizontal movement
-      windowX = savedBounds.x;
-      windowY = defaultTaskbarY;
-    } else {
-      windowX = savedBounds.x;
-      windowY = savedBounds.y;
-    }
+    const clamped = clampToBounds({ x: savedBounds.x, y: savedBounds.y, width, height }, isDocked);
+    windowX = clamped.x;
+    windowY = clamped.y;
   }
 
   mainWindow = new BrowserWindow({
     width,
     height,
-    minWidth: isDocked ? 180 : 220,
+    minWidth: isDocked ? 260 : 220,
     minHeight: isDocked ? 28 : 130,
     x: windowX,
     y: windowY,
@@ -135,7 +156,13 @@ function createWindow() {
   const saveBounds = () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const bounds = mainWindow.getBounds();
-    settingsService.save({ windowBounds: bounds });
+    const isDockedMode = settingsService.get('widgetMode') === 'docked';
+    const clamped = clampToBounds(bounds, isDockedMode);
+
+    if (bounds.x !== clamped.x || bounds.y !== clamped.y) {
+      mainWindow.setPosition(clamped.x, clamped.y);
+    }
+    settingsService.save({ windowBounds: clamped });
   };
   mainWindow.on('moved', saveBounds);
   mainWindow.on('resized', saveBounds);
@@ -236,23 +263,23 @@ function applyWidgetMode(mode) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
 
   const isDocked = mode === 'docked';
-  const width = isDocked ? 240 : 250;
+  const width = isDocked ? 320 : 250;
   const height = isDocked ? 30 : 145;
 
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const screenBounds = primaryDisplay.bounds;
-  const workArea = primaryDisplay.workArea;
-
-  mainWindow.setMinimumSize(isDocked ? 180 : 220, isDocked ? 28 : 130);
+  mainWindow.setMinimumSize(isDocked ? 260 : 220, isDocked ? 28 : 130);
   mainWindow.setSize(width, height);
   mainWindow.setSkipTaskbar(isDocked);
 
+  const currentBounds = mainWindow.getBounds();
+  const clamped = clampToBounds({
+    x: currentBounds.x,
+    y: currentBounds.y,
+    width,
+    height
+  }, isDocked);
+
+  mainWindow.setPosition(clamped.x, clamped.y);
   if (isDocked) {
-    const taskbarHeight = Math.max(40, screenBounds.height - workArea.height);
-    const taskbarY = screenBounds.height - taskbarHeight;
-    const y = taskbarY + Math.max(0, Math.round((taskbarHeight - height) / 2));
-    const x = screenBounds.width - width - 260;
-    mainWindow.setPosition(x, y);
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
     mainWindow.moveTop();
   } else {
@@ -260,6 +287,7 @@ function applyWidgetMode(mode) {
     mainWindow.setAlwaysOnTop(alwaysOnTop, alwaysOnTop ? 'screen-saver' : 'normal');
     if (alwaysOnTop) mainWindow.moveTop();
   }
+  settingsService.save({ windowBounds: clamped });
 }
 
 function isDarkTheme() {
