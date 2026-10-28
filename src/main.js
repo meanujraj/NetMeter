@@ -69,6 +69,7 @@ function createWindow() {
     minHeight: isDocked ? 28 : 130,
     x: windowX,
     y: windowY,
+    icon: path.join(__dirname, '../build/icon.png'),
     frame: false,
     transparent: true,
     alwaysOnTop: true,

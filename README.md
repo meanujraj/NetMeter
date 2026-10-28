@@ -111,13 +111,17 @@ Compact Desktop Interface (HTML5 / CSS3 / Vanilla JS)
 
 ### Option 1: Windows Installer (Recommended)
 
-1. Download the latest `NetMeter-Setup-1.0.0.exe` from [GitHub Releases](https://github.com/meanujraj/NetMeter/releases).
-2. Double-click the installer and follow the prompt.
+1. Download the latest `NetMeter-Setup-x.x.x.exe` from [GitHub Releases](https://github.com/meanujraj/NetMeter/releases).
+2. Double-click the installer and follow the setup wizard.
 3. Launch NetMeter from your desktop or Start Menu.
 
 ### Option 2: Portable Run
 
-Download the portable `.exe` from GitHub Releases and run directly without installation.
+1. Download `NetMeter-Portable-x.x.x.exe` from [GitHub Releases](https://github.com/meanujraj/NetMeter/releases).
+2. Run directly from any folder or USB drive without installation.
+
+> [!NOTE]
+> **Windows SmartScreen Prompt**: Because NetMeter is an open-source project without a paid commercial certificate, Windows SmartScreen may show *"Windows protected your PC"* on initial launch. Click **More info**, then click **Run anyway**.
 
 ---
 
@@ -152,15 +156,41 @@ npm start
 
 ## 📦 Build Instructions
 
-To generate the standalone Windows installer (`.exe` via NSIS):
+Build binaries locally using `electron-builder`:
 
 ```powershell
+# Build both NSIS installer and portable executable
 npm run build
+
+# Or build only NSIS setup installer
+npm run build:nsis
+
+# Or build only portable executable
+npm run build:portable
 ```
 
-The output installer will be packaged in the `dist/` directory:
+Generated packages will be in the `dist/` directory:
 
-- `dist/NetMeter-Setup-1.0.0.exe`
+- `dist/NetMeter-Setup-1.0.0.exe` (Installer with Start Menu and Desktop shortcuts)
+- `dist/NetMeter-Portable-1.0.0.exe` (Self-contained standalone executable)
+
+---
+
+## 🚀 Version Release Workflow
+
+NetMeter uses automated GitHub Actions CI/CD to release new versions:
+
+1. **Bump Version**:
+   ```powershell
+   npm version patch   # 1.0.0 -> 1.0.1
+   # or: npm version minor (1.1.0) / npm version major (2.0.0)
+   ```
+2. **Push Commit & Tag**:
+   ```powershell
+   git push origin main --tags
+   ```
+3. **Automated Release**:
+   GitHub Actions workflow in `.github/workflows/release.yml` triggers on tag push, compiles the Windows installer and portable `.exe`, and publishes the release on GitHub with release notes.
 
 ---
 
