@@ -13,9 +13,16 @@
     "network",
     "speed",
     "monitor",
+    "bandwidth",
     "latency",
-    "electron",
-    "windows"
+    "ping",
+    "windows-11",
+    "windows-10",
+    "taskbar-widget",
+    "system-tray",
+    "traffic-monitor",
+    "open-source",
+    "electron"
   ],
   "author": "Anujraj",
   "license": "MIT",
