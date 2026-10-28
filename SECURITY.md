@@ -53,3 +53,4 @@ If you discover a security vulnerability in NetMeter, please do not disclose it 
 1. Submit a private advisory via **GitHub Security Advisories** at `https://github.com/meanujraj/NetMeter/security/advisories/new`.
 2. Provide vulnerability details, affected component, and reproduction steps.
 3. Vulnerabilities are reviewed within 48 hours. A patch is released alongside an advisory notice.
+

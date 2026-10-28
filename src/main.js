@@ -100,6 +100,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
       webSecurity: true
     }
   });
@@ -303,11 +304,15 @@ function setupMonitors() {
 }
 
 function registerIpcHandlers() {
-  ipcMain.handle('get-settings', () => {
+  const isTrustedSender = (event) => Boolean(mainWindow && event.sender && event.sender.id === mainWindow.webContents.id);
+
+  ipcMain.handle('get-settings', (event) => {
+    if (!isTrustedSender(event)) return null;
     return settingsService.getAll();
   });
 
-  ipcMain.handle('save-settings', (_event, newSettings) => {
+  ipcMain.handle('save-settings', (event, newSettings) => {
+    if (!isTrustedSender(event)) return settingsService.getAll();
     if (!newSettings || typeof newSettings !== 'object' || Array.isArray(newSettings)) {
       return settingsService.getAll();
     }
@@ -369,12 +374,14 @@ function registerIpcHandlers() {
     return settingsService.getAll();
   });
 
-  ipcMain.handle('get-adapters', async () => {
+  ipcMain.handle('get-adapters', async (event) => {
+    if (!isTrustedSender(event)) return [];
     if (!adapterMonitor) return [];
     return await adapterMonitor.getAdapterList();
   });
 
-  ipcMain.handle('window-action', (_event, action, payload) => {
+  ipcMain.handle('window-action', (event, action, payload) => {
+    if (!isTrustedSender(event)) return;
     if (!mainWindow) return;
 
     const ALLOWED_ACTIONS = ['minimize', 'close', 'toggle-pin', 'set-opacity', 'set-widget-mode', 'bring-to-top'];
