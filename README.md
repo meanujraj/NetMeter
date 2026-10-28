@@ -20,7 +20,7 @@ A lightweight, unobtrusive Windows desktop network monitoring utility that displ
 - [Build Instructions](#build-instructions)
 - [Configuration &amp; Settings](#configuration--settings)
 - [Troubleshooting](#troubleshooting)
-- [Privacy Statement](#privacy-statement)
+- [Privacy &amp; Security Policy](#privacy--security-policy)
 - [Known Limitations](#known-limitations)
 - [Version History](#version-history)
 - [Contributing](#contributing)
@@ -233,14 +233,15 @@ Settings are saved locally in `%APPDATA%/netmeter/netmeter-settings.json`.
 
 ---
 
-## 🛡️ Privacy Statement
+## 🛡️ Privacy & Security Policy
 
-NetMeter is strictly privacy-first:
+NetMeter is strictly privacy-first and designed for long-term Windows stability:
 
 - **No data collection**: No browsing history, URLs, packet contents, or IP addresses are logged.
 - **No telemetry / analytics**: NetMeter does not phone home or transmit usage statistics.
 - **No cloud backend**: Does not require user registration, accounts, or subscriptions.
 - **Local only**: All calculations happen purely in memory on your local machine.
+- **Windows Security Policy**: See [SECURITY.md](SECURITY.md) for details on zero-driver execution, standard user integrity, subprocess timeout limits, and vulnerability reporting.
 
 ---
 
