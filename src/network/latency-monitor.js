@@ -88,27 +88,33 @@ class LatencyMonitor {
   _pingIcmp(host, timeoutMs) {
     return new Promise((resolve) => {
       // Windows ping command: ping -n 1 -w <timeoutMs> <host>
-      // Windows ping timeout is in milliseconds
-      execFile('ping', ['-n', '1', '-w', String(timeoutMs), host], { windowsHide: true }, (err, stdout) => {
+      // Windows ping timeout is in milliseconds; add hard timeout to prevent subprocess leak
+      execFile('ping', ['-n', '1', '-w', String(timeoutMs), host], { windowsHide: true, timeout: timeoutMs + 800 }, (err, stdout) => {
         if (err || !stdout) {
           // If ping command returned error or timeout
           if (stdout && stdout.toLowerCase().includes('timed out')) {
-            return resolve({ status: 'timeout', latencyMs: null });
+            return resolve({ status: 'timeout', latencyMs: null, protocol: 'icmp' });
           }
           // Fallback probe via TCP socket port 53 (DNS) for high reliability if ICMP restricted
           return this._probeTcp(host, 53, timeoutMs).then(resolve);
         }
 
         const out = stdout.toString();
-        // Match: time=24ms or time<1ms
-        const match = out.match(/time(?:=|<)(\d+)ms/i);
+
+        // Handle sub-millisecond responses (<1ms across locales)
+        if (out.includes('<1ms') || out.includes('< 1ms') || /<\s*1\s*m?s/i.test(out)) {
+          return resolve({ status: 'success', latencyMs: 1, isSubMillisecond: true, protocol: 'icmp' });
+        }
+
+        // Match localized round-trip time: time=24ms, Zeit=24ms, temps=24ms, or general [=<](\d+)ms
+        const match = out.match(/[=<]\s*(\d+)\s*m?s/i);
         if (match && match[1] !== undefined) {
           const ms = parseInt(match[1], 10);
-          return resolve({ status: 'success', latencyMs: ms });
+          return resolve({ status: 'success', latencyMs: ms, isSubMillisecond: false, protocol: 'icmp' });
         }
 
         if (out.toLowerCase().includes('timed out') || out.toLowerCase().includes('unreachable')) {
-          return resolve({ status: 'timeout', latencyMs: null });
+          return resolve({ status: 'timeout', latencyMs: null, protocol: 'icmp' });
         }
 
         // Try TCP socket fallback
@@ -135,7 +141,7 @@ class LatencyMonitor {
           resolved = true;
           const latency = Date.now() - startTime;
           cleanup();
-          resolve({ status: 'success', latencyMs: latency });
+          resolve({ status: 'success', latencyMs: latency, protocol: 'tcp' });
         }
       });
 
@@ -143,7 +149,7 @@ class LatencyMonitor {
         if (!resolved) {
           resolved = true;
           cleanup();
-          resolve({ status: 'timeout', latencyMs: null });
+          resolve({ status: 'timeout', latencyMs: null, protocol: 'tcp' });
         }
       });
 
@@ -151,7 +157,7 @@ class LatencyMonitor {
         if (!resolved) {
           resolved = true;
           cleanup();
-          resolve({ status: 'unavailable', latencyMs: null });
+          resolve({ status: 'unavailable', latencyMs: null, protocol: 'tcp' });
         }
       });
 
@@ -161,7 +167,7 @@ class LatencyMonitor {
         if (!resolved) {
           resolved = true;
           cleanup();
-          resolve({ status: 'unavailable', latencyMs: null });
+          resolve({ status: 'unavailable', latencyMs: null, protocol: 'tcp' });
         }
       }
     });

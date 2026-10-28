@@ -54,9 +54,10 @@ function init() {
     if (!latencyVal || !latencyUnit) return;
 
     if (data.status === 'success' && data.latencyMs !== null) {
-      latencyVal.textContent = data.latencyMs;
+      latencyVal.textContent = data.isSubMillisecond ? '<1' : data.latencyMs;
       latencyUnit.textContent = 'ms';
       latencyVal.style.color = '';
+      latencyVal.title = data.protocol === 'tcp' ? 'Measured via TCP handshake (port 53 fallback)' : 'Measured via ICMP ping';
     } else if (data.status === 'timeout') {
       latencyVal.textContent = 'Timeout';
       latencyUnit.textContent = '';
@@ -131,7 +132,15 @@ function updateThemeClass(theme, isSystemDark) {
 function applySettingsToUI(settings) {
   updateThemeClass(settings.theme || 'system');
 
-  if (settingWidgetMode) settingWidgetMode.value = settings.widgetMode || 'docked';
+  const settingWidgetMode = document.getElementById('setting-widget-mode');
+  const settingUnit = document.getElementById('setting-unit');
+  const settingPingTarget = document.getElementById('setting-ping-target');
+  const settingTheme = document.getElementById('setting-theme');
+  const settingOpacity = document.getElementById('setting-opacity');
+  const settingDynamicTray = document.getElementById('setting-dynamic-tray');
+  const settingAlwaysOnTop = document.getElementById('setting-always-on-top');
+  const settingStartWindows = document.getElementById('setting-start-windows');
+  const settingMinimizeTray = document.getElementById('setting-minimize-tray');
 
   if (settingWidgetMode) settingWidgetMode.value = settings.widgetMode || 'docked';
   if (settingUnit) settingUnit.value = settings.speedUnit || 'Auto';

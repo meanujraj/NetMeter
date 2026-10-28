@@ -32,6 +32,26 @@ let latencyMonitor = null;
 let isQuitting = false;
 let latestLatency = '--';
 
+function bringToTop(forceFocus = false) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+  const isDocked = settingsService.get('widgetMode') === 'docked';
+  const alwaysOnTop = Boolean(settingsService.get('alwaysOnTop'));
+  const shouldBeTopmost = isDocked || alwaysOnTop;
+  const level = shouldBeTopmost ? 'screen-saver' : 'normal';
+
+  mainWindow.setAlwaysOnTop(false);
+  mainWindow.setAlwaysOnTop(shouldBeTopmost, level);
+  if (shouldBeTopmost) {
+    mainWindow.moveTop();
+  }
+  if (forceFocus) {
+    mainWindow.focus();
+  }
+}
+
 function createWindow() {
   const settings = settingsService.getAll();
   const savedBounds = settings.windowBounds;
@@ -69,7 +89,7 @@ function createWindow() {
     minHeight: isDocked ? 28 : 130,
     x: windowX,
     y: windowY,
-    icon: path.join(__dirname, '../build/icon.png'),
+    icon: path.join(__dirname, 'assets/icon.png'),
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -102,8 +122,12 @@ function createWindow() {
 
   // Re-assert topmost above Windows taskbar whenever focus shifts
   mainWindow.on('blur', () => {
-    if (settingsService.get('alwaysOnTop')) {
-      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    const isDocked = settingsService.get('widgetMode') === 'docked';
+    const alwaysOnTop = Boolean(settingsService.get('alwaysOnTop'));
+    if (isDocked || alwaysOnTop) {
+      setTimeout(() => {
+        bringToTop(false);
+      }, 80);
     }
   });
 
@@ -128,8 +152,8 @@ function createWindow() {
 }
 
 function createTray() {
-  const initialDataUrl = createTraySpeedIcon('0K', '0K', false, isDarkTheme());
-  const icon = nativeImage.createFromDataURL(initialDataUrl);
+  const iconPath = path.join(__dirname, 'assets/icon.ico');
+  const icon = nativeImage.createFromPath(iconPath);
 
   tray = new Tray(icon);
   tray.setToolTip('NetMeter — Initializing...');
@@ -140,12 +164,9 @@ function createTray() {
 
     const contextMenu = Menu.buildFromTemplate([
       {
-        label: 'Show NetMeter',
+        label: 'Show / Bring to Front',
         click: () => {
-          if (mainWindow) {
-            mainWindow.show();
-            mainWindow.focus();
-          }
+          bringToTop(true);
         }
       },
       {
@@ -168,7 +189,8 @@ function createTray() {
         click: (item) => {
           settingsService.save({ alwaysOnTop: item.checked });
           if (mainWindow) {
-            mainWindow.setAlwaysOnTop(item.checked);
+            mainWindow.setAlwaysOnTop(item.checked, item.checked ? 'screen-saver' : 'normal');
+            if (item.checked) mainWindow.moveTop();
             mainWindow.webContents.send('settings-changed', settingsService.getAll());
           }
         }
@@ -187,14 +209,16 @@ function createTray() {
 
   updateContextMenu();
 
+  tray.on('click', () => {
+    bringToTop(true);
+  });
+
   tray.on('double-click', () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide();
-      } else {
-        mainWindow.show();
-        mainWindow.focus();
-      }
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isVisible()) {
+      mainWindow.hide();
+    } else {
+      bringToTop(true);
     }
   });
 }
@@ -221,8 +245,11 @@ function applyWidgetMode(mode) {
     const x = screenBounds.width - width - 260;
     mainWindow.setPosition(x, y);
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    mainWindow.moveTop();
   } else {
-    mainWindow.setAlwaysOnTop(Boolean(settingsService.get('alwaysOnTop')), 'floating');
+    const alwaysOnTop = Boolean(settingsService.get('alwaysOnTop'));
+    mainWindow.setAlwaysOnTop(alwaysOnTop, alwaysOnTop ? 'screen-saver' : 'normal');
+    if (alwaysOnTop) mainWindow.moveTop();
   }
 }
 
@@ -245,21 +272,18 @@ function setupMonitors() {
   adapterMonitor.start((data) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('network-update', data);
+      if (settingsService.get('widgetMode') === 'docked') {
+        mainWindow.moveTop();
+      }
     }
 
-    // Dynamic Taskbar Tray Icon
-    if (tray && settingsService.get('dynamicTrayIcon')) {
+    // Update tray tooltip with real-time stats
+    if (tray) {
       try {
-        const downShort = `${data.download.value}${data.download.unit.charAt(0)}`;
-        const upShort = `${data.upload.value}${data.upload.unit.charAt(0)}`;
-        const dataUrl = createTraySpeedIcon(downShort, upShort, data.isVpnActive, isDarkTheme());
-        const icon = nativeImage.createFromDataURL(dataUrl);
-        tray.setImage(icon);
-
         const vpnNotice = data.isVpnActive ? ` [VPN: ${data.vpnName || 'Active'}]` : '';
         tray.setToolTip(`NetMeter${vpnNotice}\n↓ ${data.download.formatted}\n↑ ${data.upload.formatted}\n◷ ${latestLatency}`);
       } catch (e) {
-        console.error('Tray icon update error:', e);
+        console.error('Tray tooltip update error:', e);
       }
     }
   });
@@ -296,7 +320,10 @@ function registerIpcHandlers() {
     }
     if (newSettings.alwaysOnTop !== undefined) {
       sanitized.alwaysOnTop = Boolean(newSettings.alwaysOnTop);
-      if (mainWindow) mainWindow.setAlwaysOnTop(sanitized.alwaysOnTop);
+      if (mainWindow) {
+        mainWindow.setAlwaysOnTop(sanitized.alwaysOnTop, sanitized.alwaysOnTop ? 'screen-saver' : 'normal');
+        if (sanitized.alwaysOnTop) mainWindow.moveTop();
+      }
     }
     if (newSettings.windowOpacity !== undefined) {
       const op = Number(newSettings.windowOpacity);
@@ -350,10 +377,12 @@ function registerIpcHandlers() {
   ipcMain.handle('window-action', (_event, action, payload) => {
     if (!mainWindow) return;
 
-    const ALLOWED_ACTIONS = ['minimize', 'close', 'toggle-pin', 'set-opacity', 'set-widget-mode'];
+    const ALLOWED_ACTIONS = ['minimize', 'close', 'toggle-pin', 'set-opacity', 'set-widget-mode', 'bring-to-top'];
     if (!ALLOWED_ACTIONS.includes(action)) return;
 
-    if (action === 'minimize') {
+    if (action === 'bring-to-top') {
+      bringToTop(true);
+    } else if (action === 'minimize') {
       mainWindow.minimize();
     } else if (action === 'close') {
       if (settingsService.get('minimizeToTray')) {
@@ -365,7 +394,8 @@ function registerIpcHandlers() {
     } else if (action === 'toggle-pin') {
       const current = mainWindow.isAlwaysOnTop();
       const updated = !current;
-      mainWindow.setAlwaysOnTop(updated);
+      mainWindow.setAlwaysOnTop(updated, updated ? 'screen-saver' : 'normal');
+      if (updated) mainWindow.moveTop();
       settingsService.save({ alwaysOnTop: updated });
       return updated;
     } else if (action === 'set-opacity') {

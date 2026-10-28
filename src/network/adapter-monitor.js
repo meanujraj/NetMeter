@@ -45,6 +45,7 @@ class AdapterMonitor {
 
     // Periodic metadata refresher (every 10 seconds)
     this.metadataTimer = null;
+    this.isRefreshingMetadata = false;
   }
 
   setSpeedUnit(unit) {
@@ -156,7 +157,7 @@ class AdapterMonitor {
    */
   _getNetstatBytes() {
     return new Promise((resolve) => {
-      execFile('netstat', ['-e'], { windowsHide: true }, (err, stdout) => {
+      execFile('netstat', ['-e'], { windowsHide: true, timeout: 2000 }, (err, stdout) => {
         if (err || !stdout) {
           return resolve(null);
         }
@@ -178,12 +179,16 @@ class AdapterMonitor {
    * Refreshes adapter descriptions and VPN status in background
    */
   refreshMetadata() {
+    if (this.isRefreshingMetadata) return;
+    this.isRefreshingMetadata = true;
+
     const script = `
       $adapters = @(Get-NetAdapter -ErrorAction SilentlyContinue | Select-Object Name, InterfaceDescription, Status, Virtual);
       $adapters | ConvertTo-Json -Compress
     `;
 
-    execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true }, (err, stdout) => {
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, timeout: 8000 }, (err, stdout) => {
+      this.isRefreshingMetadata = false;
       if (err || !stdout) return;
 
       try {
