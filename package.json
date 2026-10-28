@@ -1,0 +1,36 @@
+{
+  "name": "netmeter",
+  "version": "1.0.0",
+  "description": "Lightweight Windows desktop network speed and latency monitor",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "keywords": [
+    "network",
+    "speed",
+    "monitor",
+    "latency",
+    "electron",
+    "windows"
+  ],
+  "author": "Anujraj",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^34.3.0"
+  },
+  "build": {
+    "appId": "com.anujraj.netmeter",
+    "productName": "NetMeter",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

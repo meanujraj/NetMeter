@@ -1,0 +1,418 @@
+/* styles.css - Modern NetMeter widget design system supporting Docked and Floating layouts */
+
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --bg-widget: rgba(18, 22, 28, 0.94);
+  --bg-header: rgba(14, 17, 23, 0.98);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --text-main: #f1f5f9;
+  --text-dim: #94a3b8;
+  --text-subtle: #64748b;
+  --color-download: #10b981; /* Emerald green */
+  --color-upload: #38bdf8;   /* Sky blue */
+  --color-latency: #f59e0b;  /* Amber */
+  --color-vpn: #a855f7;      /* Violet */
+  --ctrl-hover: rgba(255, 255, 255, 0.14);
+  --ctrl-active: #3b82f6;
+  --radius-widget: 10px;
+  --shadow-widget: 0 8px 20px -4px rgba(0, 0, 0, 0.6);
+}
+
+body.theme-light {
+  --bg-widget: rgba(255, 255, 255, 0.94);
+  --bg-header: rgba(241, 245, 249, 0.98);
+  --border-color: rgba(0, 0, 0, 0.12);
+  --text-main: #0f172a;
+  --text-dim: #475569;
+  --text-subtle: #94a3b8;
+  --color-download: #059669;
+  --color-upload: #0284c7;
+  --color-latency: #d97706;
+  --color-vpn: #7c3aed;
+  --ctrl-hover: rgba(0, 0, 0, 0.08);
+  --shadow-widget: 0 8px 20px -4px rgba(0, 0, 0, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+body {
+  font-family: var(--font-family);
+  background: transparent;
+  color: var(--text-main);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+}
+
+.widget-container {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-widget);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-widget);
+  box-shadow: var(--shadow-widget);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* Header & Drag bar */
+.drag-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border-color);
+  -webkit-app-region: drag;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.app-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.status-live {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-download);
+  background: rgba(16, 185, 129, 0.12);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.live-pulse {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-download);
+  box-shadow: 0 0 6px var(--color-download);
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.vpn-badge {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-vpn);
+  padding: 1px 5px;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
+  animation: glow-vpn 2.5s infinite alternate;
+}
+
+@keyframes glow-vpn {
+  from { box-shadow: 0 0 3px var(--color-vpn); }
+  to { box-shadow: 0 0 10px var(--color-vpn); }
+}
+
+.vpn-icon {
+  font-size: 9px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Window Controls */
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ctrl-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ctrl-btn:hover {
+  background: var(--ctrl-hover);
+  color: var(--text-main);
+}
+
+.ctrl-btn.active {
+  color: var(--ctrl-active);
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.ctrl-btn.close:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* Floating Card Mode */
+.meter-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 12px;
+  gap: 4px;
+}
+
+.metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  line-height: 1.2;
+}
+
+.metric-icon {
+  font-size: 13px;
+  font-weight: 800;
+  width: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.download-icon { color: var(--color-download); }
+.upload-icon { color: var(--color-upload); }
+.latency-icon { color: var(--color-latency); font-size: 11px; }
+
+.metric-value-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.metric-value {
+  font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+  min-width: 50px;
+  text-align: right;
+}
+
+.download-row .metric-value { color: var(--color-download); }
+.upload-row .metric-value { color: var(--color-upload); }
+.latency-row .metric-value { color: var(--color-latency); }
+
+.metric-unit {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-subtle);
+  min-width: 32px;
+}
+
+.widget-footer {
+  padding: 3px 10px 4px;
+  border-top: 1px solid var(--border-color);
+  font-size: 9px;
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ========================================================
+   Taskbar Docked Mini-Bar Mode (Ultra-compact horizontal strip)
+   ======================================================== */
+body.mode-docked .widget-container {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0 10px;
+  background: rgba(20, 24, 32, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  -webkit-app-region: drag;
+}
+
+body.theme-light.mode-docked .widget-container {
+  background: rgba(243, 244, 246, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.mode-docked #widget-footer {
+  display: none;
+}
+
+body.mode-docked .meter-content {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 12px;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body.mode-docked .metric-row {
+  gap: 3px;
+}
+
+body.mode-docked .metric-icon {
+  font-size: 11px;
+  width: auto;
+  font-weight: 700;
+}
+
+body.mode-docked .metric-value {
+  font-size: 12px;
+  font-weight: 700;
+  min-width: auto;
+  font-family: "Segoe UI", -apple-system, sans-serif;
+}
+
+body.mode-docked .metric-unit {
+  font-size: 10px;
+  font-weight: 600;
+  min-width: auto;
+}
+
+/* Subtle controls in docked mode: fade in on widget hover */
+body.mode-docked .window-controls {
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+body.mode-docked .widget-container:hover .window-controls {
+  opacity: 1;
+}
+
+body.mode-docked .ctrl-btn {
+  width: 16px;
+  height: 16px;
+  font-size: 9px;
+  padding: 0;
+}
+
+/* Settings Drawer */
+.settings-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-widget);
+  backdrop-filter: blur(20px);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  animation: slide-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-header h3 {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.settings-body::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setting-item label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.setting-control {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 3px 5px;
+  border-radius: 4px;
+  font-size: 10px;
+  outline: none;
+}
+
+body.theme-light .setting-control {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.setting-checkbox-item label {
+  font-size: 10px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}

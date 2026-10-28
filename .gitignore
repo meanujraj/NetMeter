@@ -8,7 +8,8 @@ out/
 
 # Environment and local configs
 .env
-.env.local
+.env.*
+*.local
 
 # Agent metadata and skills lock
 .agents/

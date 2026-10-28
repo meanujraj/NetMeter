@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;">
+  <title>NetMeter</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-dark mode-docked">
+  <div id="app" class="widget-container">
+    <!-- Main Speed & Latency Meters (Taskbar Strip) -->
+    <main id="meter-display" class="meter-content">
+      <div class="metric-row download-row" title="Download Speed">
+        <div class="metric-icon download-icon">↓</div>
+        <div class="metric-value-wrap">
+          <span id="speed-down-val" class="metric-value">0.00</span>
+          <span id="speed-down-unit" class="metric-unit">B/s</span>
+        </div>
+      </div>
+
+      <div class="metric-row upload-row" title="Upload Speed">
+        <div class="metric-icon upload-icon">↑</div>
+        <div class="metric-value-wrap">
+          <span id="speed-up-val" class="metric-value">0.00</span>
+          <span id="speed-up-unit" class="metric-unit">B/s</span>
+        </div>
+      </div>
+
+      <div class="metric-row latency-row" title="Round-trip Latency">
+        <div class="metric-icon latency-icon">◷</div>
+        <div class="metric-value-wrap">
+          <span id="latency-val" class="metric-value">--</span>
+          <span id="latency-unit" class="metric-unit">ms</span>
+        </div>
+      </div>
+
+      <span id="vpn-badge" class="vpn-badge hidden" title="VPN connection active">
+        <span class="vpn-icon">🛡️</span>VPN
+      </span>
+    </main>
+
+    <!-- Subtle Footer: Active Adapter (visible in floating mode) -->
+    <footer id="widget-footer" class="widget-footer">
+      <span id="adapter-label" class="adapter-label" title="Current network interface">Detecting...</span>
+    </footer>
+
+    <!-- Settings Overlay Drawer -->
+    <div id="settings-panel" class="settings-drawer hidden no-drag">
+      <div class="settings-header">
+        <h3>Settings</h3>
+        <button id="btn-close-settings" class="ctrl-btn">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-item">
+          <label for="setting-widget-mode">Display Mode</label>
+          <select id="setting-widget-mode" class="setting-control">
+            <option value="docked">Taskbar Mini-Bar (Horizontal)</option>
+            <option value="floating">Floating Widget (Card)</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="setting-unit">Speed Unit</label>
+          <select id="setting-unit" class="setting-control">
+            <option value="Auto">Auto (B/s, KB/s, MB/s)</option>
+            <option value="auto-bits">Auto (bps, Kbps, Mbps)</option>
+            <option value="Mbps">Mbps</option>
+            <option value="MB/s">MB/s</option>
+            <option value="KB/s">KB/s</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="setting-adapter">Network Adapter</label>
+          <select id="setting-adapter" class="setting-control">
+            <option value="auto">Automatic</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="setting-ping-target">Ping Target</label>
+          <input type="text" id="setting-ping-target" class="setting-control" placeholder="1.1.1.1" value="1.1.1.1" />
+        </div>
+
+        <div class="setting-item">
+          <label for="setting-theme">Theme</label>
+          <select id="setting-theme" class="setting-control">
+            <option value="system">Windows Auto (System)</option>
+            <option value="dark">Dark Theme</option>
+            <option value="light">Light Theme</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label for="setting-opacity">Widget Opacity</label>
+          <input type="range" id="setting-opacity" min="0.3" max="1.0" step="0.05" value="1.0" />
+        </div>
+
+        <div class="setting-checkbox-item">
+          <label>
+            <input type="checkbox" id="setting-dynamic-tray" checked />
+            Live Speed Numbers on Taskbar Tray Icon
+          </label>
+        </div>
+
+        <div class="setting-checkbox-item">
+          <label>
+            <input type="checkbox" id="setting-always-on-top" checked />
+            Always on Top
+          </label>
+        </div>
+
+        <div class="setting-checkbox-item">
+          <label>
+            <input type="checkbox" id="setting-start-windows" />
+            Launch at Windows Startup
+          </label>
+        </div>
+
+        <div class="setting-checkbox-item">
+          <label>
+            <input type="checkbox" id="setting-minimize-tray" checked />
+            Minimize to System Tray on Close
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
