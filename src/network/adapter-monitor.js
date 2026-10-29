@@ -4,8 +4,13 @@
  */
 
 const { execFile } = require('child_process');
+const path = require('path');
 const { SpeedCalculator } = require('./speed-calculator');
 const { formatSpeed } = require('../utils/format-speed');
+
+const sysRoot = process.env.SystemRoot || 'C:\\Windows';
+const NETSTAT_BIN = path.join(sysRoot, 'System32', 'netstat.exe');
+const POWERSHELL_BIN = path.join(sysRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
 
 const VPN_PATTERNS = [
   /vpn/i,
@@ -157,7 +162,7 @@ class AdapterMonitor {
    */
   _getNetstatBytes() {
     return new Promise((resolve) => {
-      execFile('netstat', ['-e'], { windowsHide: true, timeout: 2000 }, (err, stdout) => {
+      execFile(NETSTAT_BIN, ['-e'], { windowsHide: true, timeout: 2000 }, (err, stdout) => {
         if (err || !stdout) {
           return resolve(null);
         }
@@ -187,7 +192,7 @@ class AdapterMonitor {
       $adapters | ConvertTo-Json -Compress
     `;
 
-    execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, timeout: 8000 }, (err, stdout) => {
+    execFile(POWERSHELL_BIN, ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, timeout: 8000 }, (err, stdout) => {
       this.isRefreshingMetadata = false;
       if (err || !stdout) return;
 

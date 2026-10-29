@@ -4,7 +4,11 @@
  */
 
 const { execFile } = require('child_process');
+const path = require('path');
 const net = require('net');
+
+const sysRoot = process.env.SystemRoot || 'C:\\Windows';
+const PING_BIN = path.join(sysRoot, 'System32', 'ping.exe');
 
 class LatencyMonitor {
   constructor(options = {}) {
@@ -89,7 +93,7 @@ class LatencyMonitor {
     return new Promise((resolve) => {
       // Windows ping command: ping -n 1 -w <timeoutMs> <host>
       // Windows ping timeout is in milliseconds; add hard timeout to prevent subprocess leak
-      execFile('ping', ['-n', '1', '-w', String(timeoutMs), host], { windowsHide: true, timeout: timeoutMs + 800 }, (err, stdout) => {
+      execFile(PING_BIN, ['-n', '1', '-w', String(timeoutMs), host], { windowsHide: true, timeout: timeoutMs + 800 }, (err, stdout) => {
         if (err || !stdout) {
           // If ping command returned error or timeout
           if (stdout && stdout.toLowerCase().includes('timed out')) {

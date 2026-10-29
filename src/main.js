@@ -340,7 +340,13 @@ function setupMonitors() {
 }
 
 function registerIpcHandlers() {
-  const isTrustedSender = (event) => Boolean(mainWindow && event.sender && event.sender.id === mainWindow.webContents.id);
+  const isTrustedSender = (event) => Boolean(
+    mainWindow &&
+    !mainWindow.isDestroyed() &&
+    event.sender &&
+    event.sender.id === mainWindow.webContents.id &&
+    (!event.senderFrame || event.senderFrame === mainWindow.webContents.mainFrame)
+  );
 
   ipcMain.handle('get-settings', (event) => {
     if (!isTrustedSender(event)) return null;
@@ -399,8 +405,8 @@ function registerIpcHandlers() {
     }
     if (typeof newSettings.pingTarget === 'string') {
       const trimmed = newSettings.pingTarget.trim();
-      // Validate safe hostname / IPv4 / IPv6 string (no shell metacharacters)
-      if (/^[a-zA-Z0-9.-]{1,100}$/.test(trimmed)) {
+      // Validate safe hostname / IPv4: require alphanumeric start to prevent CLI option injection
+      if (/^[a-zA-Z0-9][a-zA-Z0-9.-]{0,99}$/.test(trimmed)) {
         sanitized.pingTarget = trimmed;
         if (latencyMonitor) latencyMonitor.setTarget(trimmed);
       }

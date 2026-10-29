@@ -49,7 +49,9 @@ class SettingsService {
   save(newSettings) {
     try {
       this.settings = { ...this.settings, ...newSettings };
-      fs.writeFileSync(this.configPath, JSON.stringify(this.settings, null, 2), 'utf8');
+      const tmpPath = `${this.configPath}.${Date.now()}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(this.settings, null, 2), 'utf8');
+      fs.renameSync(tmpPath, this.configPath);
       return true;
     } catch (e) {
       console.error('Error saving settings:', e);
