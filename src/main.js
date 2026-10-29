@@ -181,7 +181,10 @@ function createWindow() {
 
 function createTray() {
   const iconPath = path.join(__dirname, 'assets/icon.ico');
-  const icon = nativeImage.createFromPath(iconPath);
+  let icon = nativeImage.createFromPath(iconPath);
+  if (icon.isEmpty()) {
+    icon = nativeImage.createFromPath(path.join(__dirname, 'assets/icon.png'));
+  }
 
   tray = new Tray(icon);
   tray.setToolTip('NetMeter — Initializing...');

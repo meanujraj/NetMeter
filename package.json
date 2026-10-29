@@ -5,6 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
+    "test": "node --check src/main.js src/preload.js src/renderer.js src/network/adapter-monitor.js src/network/latency-monitor.js src/network/speed-calculator.js src/settings/settings-service.js src/utils/format-speed.js src/utils/tray-icon-generator.js",
     "build": "electron-builder",
     "build:nsis": "electron-builder --win nsis",
     "build:portable": "electron-builder --win portable"

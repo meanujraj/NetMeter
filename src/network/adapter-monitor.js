@@ -167,7 +167,8 @@ class AdapterMonitor {
           return resolve(null);
         }
 
-        const match = stdout.match(/Bytes\s+(\d+)\s+(\d+)/i);
+        // Match first statistics row (Bytes / Octets / localized label) followed by Received and Sent numbers
+        const match = stdout.match(/(?:Bytes|Octets|Байты|バイト|字节|[^\d\r\n]+)\s+(\d+)\s+(\d+)/i);
         if (match) {
           resolve({
             rx: Number(match[1]),
