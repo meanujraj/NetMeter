@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS = {
   startWithWindows: true,
   adapter: 'auto',
   pingTarget: '8.8.8.8',
-  launchMinimized: false,
+  launchMinimized: true,
   minimizeToTray: true,
   windowOpacity: 1.0,
   windowBounds: null

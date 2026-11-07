@@ -31,6 +31,98 @@ let adapterMonitor = null;
 let latencyMonitor = null;
 let isQuitting = false;
 let latestLatency = '--';
+let trayCreateAttempts = 0;
+
+const HIDDEN_LAUNCH_FLAG = '--hidden';
+const MAX_TRAY_CREATE_ATTEMPTS = 12;
+
+function getLoginLaunchArgs(launchMinimized) {
+  const args = [];
+  if (!app.isPackaged) {
+    // Dev: register app entry so Windows does not start bare electron.exe
+    const appEntry = process.argv[1] ? path.resolve(process.argv[1]) : path.join(__dirname, '..');
+    args.push(appEntry);
+  }
+  if (launchMinimized) {
+    args.push(HIDDEN_LAUNCH_FLAG);
+  }
+  return args;
+}
+
+function resolveLoginExecPath() {
+  // Electron <38 writes Run key unquoted; quote paths that contain spaces.
+  const execPath = process.execPath;
+  if (process.platform === 'win32' && /\s/.test(execPath) && !/^".*"$/.test(execPath)) {
+    return `"${execPath}"`;
+  }
+  return execPath;
+}
+
+function applyStartWithWindows(enabled, launchMinimized = false) {
+  const openAtLogin = Boolean(enabled);
+  const hidden = Boolean(launchMinimized);
+  app.setLoginItemSettings({
+    openAtLogin,
+    openAsHidden: hidden,
+    path: resolveLoginExecPath(),
+    args: openAtLogin ? getLoginLaunchArgs(hidden) : []
+  });
+}
+
+function shouldStartHidden() {
+  if (process.argv.includes(HIDDEN_LAUNCH_FLAG)) return true;
+  if (!settingsService) return false;
+  if (settingsService.get('launchMinimized')) return true;
+  try {
+    const login = app.getLoginItemSettings();
+    return Boolean(login.wasOpenedAtLogin && settingsService.get('launchMinimized'));
+  } catch (_e) {
+    return false;
+  }
+}
+
+function shortTraySpeedLabel(formatted) {
+  const match = String(formatted || '').match(/^([\d.]+)\s*([A-Za-zµ/]+)/);
+  if (!match) return '0K';
+  const value = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  if (!Number.isFinite(value)) return '0K';
+  if (unit.startsWith('gb')) return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)}G`;
+  if (unit.startsWith('mb')) return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)}M`;
+  if (unit.startsWith('kb') || unit === 'kbps') return `${Math.max(0, Math.round(value))}K`;
+  if (unit === 'bps' || unit === 'b/s') return `${Math.max(0, Math.round(value))}B`;
+  return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)}M`;
+}
+
+function resolveTrayIconImage() {
+  const icoPath = path.join(__dirname, 'assets/icon.ico');
+  let icon = nativeImage.createFromPath(icoPath);
+  if (icon.isEmpty()) {
+    icon = nativeImage.createFromPath(path.join(__dirname, 'assets/icon.png'));
+  }
+  if (icon.isEmpty()) {
+    icon = nativeImage.createFromDataURL(
+      createTraySpeedIcon('0K', '0K', false, isDarkTheme())
+    );
+  }
+  return icon;
+}
+
+function updateDynamicTrayIcon(data) {
+  if (!tray || !settingsService || !settingsService.get('dynamicTrayIcon')) return;
+  try {
+    const down = shortTraySpeedLabel(data && data.download && data.download.formatted);
+    const up = shortTraySpeedLabel(data && data.upload && data.upload.formatted);
+    const image = nativeImage.createFromDataURL(
+      createTraySpeedIcon(down, up, Boolean(data && data.isVpnActive), isDarkTheme())
+    );
+    if (!image.isEmpty()) {
+      tray.setImage(image);
+    }
+  } catch (e) {
+    console.error('Dynamic tray icon update error:', e);
+  }
+}
 
 function bringToTop(forceFocus = false) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -103,6 +195,8 @@ function createWindow() {
     windowY = clamped.y;
   }
 
+  const startHidden = shouldStartHidden();
+
   mainWindow = new BrowserWindow({
     width,
     height,
@@ -116,6 +210,7 @@ function createWindow() {
     alwaysOnTop: true,
     skipTaskbar: isDocked,
     resizable: true,
+    show: !startHidden,
     opacity: typeof settings.windowOpacity === 'number' ? settings.windowOpacity : 1.0,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -180,10 +275,11 @@ function createWindow() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, 'assets/icon.ico');
-  let icon = nativeImage.createFromPath(iconPath);
+  if (tray) return true;
+
+  const icon = resolveTrayIconImage();
   if (icon.isEmpty()) {
-    icon = nativeImage.createFromPath(path.join(__dirname, 'assets/icon.png'));
+    throw new Error('Tray icon is empty');
   }
 
   tray = new Tray(icon);
@@ -260,6 +356,24 @@ function createTray() {
       bringToTop(true);
     }
   });
+
+  return true;
+}
+
+function createTrayWithRetry() {
+  try {
+    createTray();
+    trayCreateAttempts = 0;
+  } catch (e) {
+    trayCreateAttempts += 1;
+    console.error(`Tray create failed (attempt ${trayCreateAttempts}):`, e);
+    if (trayCreateAttempts < MAX_TRAY_CREATE_ATTEMPTS) {
+      const delayMs = Math.min(8000, 1000 + trayCreateAttempts * 500);
+      setTimeout(() => {
+        createTrayWithRetry();
+      }, delayMs);
+    }
+  }
 }
 
 function applyWidgetMode(mode) {
@@ -317,11 +431,12 @@ function setupMonitors() {
       }
     }
 
-    // Update tray tooltip with real-time stats
+    // Update tray tooltip + optional live speed icon
     if (tray) {
       try {
         const vpnNotice = data.isVpnActive ? ` [VPN: ${data.vpnName || 'Active'}]` : '';
         tray.setToolTip(`NetMeter${vpnNotice}\n↓ ${data.download.formatted}\n↑ ${data.upload.formatted}\n◷ ${latestLatency}`);
+        updateDynamicTrayIcon(data);
       } catch (e) {
         console.error('Tray tooltip update error:', e);
       }
@@ -384,10 +499,18 @@ function registerIpcHandlers() {
     }
     if (newSettings.startWithWindows !== undefined) {
       sanitized.startWithWindows = Boolean(newSettings.startWithWindows);
-      app.setLoginItemSettings({
-        openAtLogin: sanitized.startWithWindows,
-        path: process.execPath
-      });
+    }
+    if (newSettings.launchMinimized !== undefined) {
+      sanitized.launchMinimized = Boolean(newSettings.launchMinimized);
+    }
+    if (newSettings.startWithWindows !== undefined || newSettings.launchMinimized !== undefined) {
+      const enabled = sanitized.startWithWindows !== undefined
+        ? sanitized.startWithWindows
+        : Boolean(settingsService.get('startWithWindows'));
+      const hidden = sanitized.launchMinimized !== undefined
+        ? sanitized.launchMinimized
+        : Boolean(settingsService.get('launchMinimized'));
+      applyStartWithWindows(enabled, hidden);
     }
     if (typeof newSettings.speedUnit === 'string' && ['Auto', 'auto-bits', 'Mbps', 'MB/s', 'KB/s', 'B/s'].includes(newSettings.speedUnit)) {
       sanitized.speedUnit = newSettings.speedUnit;
@@ -464,19 +587,27 @@ function registerIpcHandlers() {
 app.whenReady().then(() => {
   settingsService = new SettingsService();
 
-  // Sync Windows login startup setting
-  if (settingsService.get('startWithWindows')) {
-    app.setLoginItemSettings({
-      openAtLogin: true,
-      openAsHidden: Boolean(settingsService.get('launchMinimized')),
-      path: process.execPath
-    });
-  }
+  // Always sync Run-key registration (enable or clear) with current settings
+  applyStartWithWindows(
+    Boolean(settingsService.get('startWithWindows')),
+    Boolean(settingsService.get('launchMinimized'))
+  );
 
   createWindow();
-  createTray();
   setupMonitors();
   registerIpcHandlers();
+
+  // Delay tray at login so Windows notification area is ready
+  let startedAtLogin = false;
+  try {
+    startedAtLogin = Boolean(app.getLoginItemSettings().wasOpenedAtLogin);
+  } catch (_e) {
+    startedAtLogin = false;
+  }
+  const trayDelayMs = startedAtLogin ? 2500 : 0;
+  setTimeout(() => {
+    createTrayWithRetry();
+  }, trayDelayMs);
 
   // Auto adjust theme when Windows switches between Dark and Light mode
   nativeTheme.on('updated', () => {
@@ -499,7 +630,7 @@ app.on('before-quit', () => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin' && !settingsService.get('minimizeToTray')) {
+  if (process.platform !== 'darwin' && settingsService && !settingsService.get('minimizeToTray')) {
     app.quit();
   }
 });

@@ -140,6 +140,7 @@ function applySettingsToUI(settings) {
   const settingDynamicTray = document.getElementById('setting-dynamic-tray');
   const settingAlwaysOnTop = document.getElementById('setting-always-on-top');
   const settingStartWindows = document.getElementById('setting-start-windows');
+  const settingLaunchMinimized = document.getElementById('setting-launch-minimized');
   const settingMinimizeTray = document.getElementById('setting-minimize-tray');
 
   if (settingWidgetMode) settingWidgetMode.value = settings.widgetMode || 'docked';
@@ -150,6 +151,7 @@ function applySettingsToUI(settings) {
   if (settingDynamicTray) settingDynamicTray.checked = settings.dynamicTrayIcon !== false;
   if (settingAlwaysOnTop) settingAlwaysOnTop.checked = Boolean(settings.alwaysOnTop);
   if (settingStartWindows) settingStartWindows.checked = Boolean(settings.startWithWindows);
+  if (settingLaunchMinimized) settingLaunchMinimized.checked = Boolean(settings.launchMinimized);
   if (settingMinimizeTray) settingMinimizeTray.checked = Boolean(settings.minimizeToTray);
 }
 
@@ -190,6 +192,7 @@ function setupEventListeners() {
   const settingDynamicTray = document.getElementById('setting-dynamic-tray');
   const settingAlwaysOnTop = document.getElementById('setting-always-on-top');
   const settingStartWindows = document.getElementById('setting-start-windows');
+  const settingLaunchMinimized = document.getElementById('setting-launch-minimized');
   const settingMinimizeTray = document.getElementById('setting-minimize-tray');
 
   if (btnMode) {
@@ -272,6 +275,12 @@ function setupEventListeners() {
   if (settingStartWindows) {
     settingStartWindows.addEventListener('change', () => {
       saveSetting({ startWithWindows: settingStartWindows.checked });
+    });
+  }
+
+  if (settingLaunchMinimized) {
+    settingLaunchMinimized.addEventListener('change', () => {
+      saveSetting({ launchMinimized: settingLaunchMinimized.checked });
     });
   }
 

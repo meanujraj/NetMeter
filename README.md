@@ -223,7 +223,8 @@ Click the settings gear icon in the widget to configure:
 | **Ping Target**        | `1.1.1.1` (default), `8.8.8.8`, or custom host/IP     | Destination for latency measurement        |
 | **Theme**              | `Dark` (default), `Light`                             | Color scheme                               |
 | **Always on Top**      | `Enabled` (default), `Disabled`                       | Pin widget above other windows             |
-| **Start with Windows** | `Disabled` (default), `Enabled`                       | Launch automatically upon Windows login    |
+| **Start with Windows** | `Enabled` (default), `Disabled`                         | Launch automatically upon Windows login    |
+| **Start Hidden in Tray** | `Enabled` (default), `Disabled`                       | Hide widget on login; keep tray running    |
 | **Network Adapter**    | `Auto` (default) or select specific adapter             | Select interface to monitor                |
 | **Minimize to Tray**   | `Enabled` (default), `Disabled`                       | Minimize to system tray instead of closing |
 | **Widget Opacity**     | `50%` to `100%`                                       | Adjust transparency                        |
@@ -291,6 +292,10 @@ NetMeter is strictly privacy-first and designed for long-term Windows stability:
 
 ## 📜 Version History
 
+- **v1.0.1**
+  - Fix Windows auto-start Run registration (dev args, spaced paths, enable/clear sync).
+  - Delay/retry tray creation at login; SVG tray fallback when icons missing.
+  - Honor Start Hidden in Tray; wire live tray speed icons.
 - **v1.0.0** (Initial Release)
   - Live download, upload, and latency monitoring.
   - Dark and Light themes.
